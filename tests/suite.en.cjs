@@ -31,7 +31,7 @@ const body = (doc) => doc.body.textContent;
   ck('no floating nag chip', !doc.querySelector('div[class*="z-[110]"]'));
 
   // R:R showcase
-  ck('rr widget on dashboard', body(doc).includes('R:R Performance') && body(doc).includes('Profit factor') && body(doc).includes('R distribution'));
+  ck('rr widget minimal + below equity', body(doc).includes('R:R Performance') && body(doc).includes('Cumulative R') && !body(doc).includes('R distribution') && body(doc).indexOf('Equity curve') >= 0 && body(doc).indexOf('Equity curve') < body(doc).indexOf('R:R Performance'));
 
   const bell = doc.querySelector('[aria-label="Notifications"]');
   pd(w, bell); await sleep(500);
@@ -67,9 +67,9 @@ const body = (doc) => doc.body.textContent;
   ck('add: qty field removed', !dlg().querySelector('input[placeholder="0.001"]'));
   ck('add: P/B/L cards removed', !dlg().textContent.includes('Price moved in'));
   const seg = () => dlg().querySelector('[role="group"]');
-  ck('add: boxes dir ltr + order TP,BE,SL', seg().getAttribute('dir') === 'ltr' && [...seg().children].map((c) => c.textContent.slice(0, 2)).join(',') === 'TP,BE,SL');
+  ck('add: boxes dir ltr + order TP,BE,SL', seg().getAttribute('dir') === 'ltr' && [...seg().children].map((c) => c.querySelector('input').placeholder).join(',') === 'TP,BE,SL');
   ck('add: label TP/BE/SL above', dlg().textContent.includes('TP/BE/SL'));
-  const box = (id) => [...seg().children].find((c) => c.textContent.startsWith(id));
+  const box = (id) => [...seg().children].find((c) => c.querySelector('input').placeholder === id);
   const boxIn = (id) => box(id).querySelector('input');
   ck('add: boxes idle', box('TP').getAttribute('aria-pressed') === 'false');
   const badge = () => [...dlg().querySelectorAll('span')].some((sp) => sp.textContent === 'Long' || sp.textContent === 'Short');
@@ -119,7 +119,7 @@ const body = (doc) => doc.body.textContent;
   setInput(w, d3.querySelector('input[placeholder="108,400"]'), '2000'); await sleep(150);
   setInput(w, d3.querySelector('input[placeholder="109,860"]'), '2100'); await sleep(150);
   setInput(w, d3.querySelector('input[placeholder="107,900"]'), '1990'); await sleep(300);
-  setInput(w, [...d3.querySelector('[role="group"]').children].find((c) => c.textContent.startsWith('TP')).querySelector('input'), '5000'); await sleep(500);
+  setInput(w, [...d3.querySelector('[role="group"]').children].find((c) => c.querySelector('input').placeholder === 'TP').querySelector('input'), '5000'); await sleep(500);
   ck('add: oversized colloquial warn', body(doc).includes('ease off'));
   ck('add: no double percent', !body(doc).includes('%%'));
   click(w, d3.querySelector('button[aria-label="Cancel"]')); await sleep(400);
@@ -135,7 +135,7 @@ const body = (doc) => doc.body.textContent;
   ck('view: edit+delete top-right', !!vEdit && !!vDel);
   click(w, vEdit); await sleep(800);
   const ed = doc.querySelector('[role="dialog"]');
-  const tpBox = ed && [...ed.querySelector('[role="group"]').children].find((c) => c.textContent.startsWith('TP'));
+  const tpBox = ed && [...ed.querySelector('[role="group"]').children].find((c) => c.querySelector('input').placeholder === 'TP');
   ck('view: edit handoff prefills boxes', !!ed && ed.textContent.includes('Edit trade') && tpBox && [...ed.querySelector('[role="group"]').children].some((c) => c.querySelector('input').value !== ''));
   click(w, ed.querySelector('button[aria-label="Cancel"]')); await sleep(500);
   click(w, doc.querySelector('tbody tr')); await sleep(600);
@@ -150,7 +150,7 @@ const body = (doc) => doc.body.textContent;
 
   // ---------------- My Plans ----------------
   nav(w, 'My Plans'); await sleep(700);
-  ck('plans: page + empty state', body(doc).includes('My Plans') && body(doc).includes('No plans yet'));
+  ck('plans: page + sample seeded', body(doc).includes('My Plans') && body(doc).includes('Previous Day Candle') && body(doc).includes("Mark the previous day's high and low"));
   click(w, byText(doc, 'button', 'New plan')); await sleep(600);
   const pd2 = doc.querySelector('[role="dialog"]');
   setInput(w, pd2.querySelector('input'), 'ICT Killzone'); await sleep(120);
@@ -184,7 +184,19 @@ const body = (doc) => doc.body.textContent;
 
   // ---------------- analytics has RR ----------------
   nav(w, 'Analytics'); await sleep(800);
-  ck('analytics: RR widget present', body(doc).includes('R:R Performance'));
+  ck('analytics: strip + minimal RR below equity', body(doc).includes('R:R Performance') && body(doc).includes('Net P&L') && body(doc).indexOf('Equity curve') < body(doc).indexOf('R:R Performance'));
+
+  // ---------------- notes page: two columns + composer ----------------
+  nav(w, 'Notes'); await sleep(800);
+  const subIn = doc.querySelector('input[aria-label="Subject"]');
+  const cmpIn = doc.querySelector('textarea[aria-label^="Write a note"]');
+  ck('notes: composer present', !!subIn && !!cmpIn);
+  setInput(w, subIn, 'My rule'); await sleep(150);
+  setInput(w, cmpIn, 'No revenge trades'); await sleep(150);
+  click(w, doc.querySelector('button[aria-label="Add note"]')); await sleep(600);
+  ck('notes: composer saved', (w.localStorage.getItem('pulse.notes') || '').includes('No revenge trades'));
+  const nHtml = doc.body.innerHTML;
+  ck('notes: two-column desktop layout', nHtml.includes('lg:col-span-5') && nHtml.includes('lg:col-span-7'));
 
   // ---------------- bell nag flow (shifted weekday) ----------------
   const fKey = dayKey(new Date(Date.now() - 3 * 86400000));

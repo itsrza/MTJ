@@ -34,7 +34,7 @@ function ck(name, cond) {
     await sleep(300);
   }
   ck('fa: reminder gradient removed', !doc.querySelector('[class*="from-accent/10"]'));
-  ck('fa: rr widget', doc.body.textContent.includes('عملکرد R:R') && doc.body.textContent.includes('ضریب سود'));
+  ck('fa: rr minimal + below equity', doc.body.textContent.includes('عملکرد R:R') && doc.body.textContent.includes('تجمع R') && !doc.body.textContent.includes('توزیع R') && doc.body.textContent.indexOf('منحنی اکوییتی') >= 0 && doc.body.textContent.indexOf('منحنی اکوییتی') < doc.body.textContent.indexOf('عملکرد R:R'));
 
   // calculator fa
   nav(w, 'ماشین‌حساب'); await sleep(500);
@@ -59,9 +59,9 @@ function ck(name, cond) {
   const dlg = () => doc.querySelector('[role="dialog"]');
   ck('fa: dialog open', !!dlg());
   const seg = () => dlg().querySelector('[role="group"]');
-  ck('fa: boxes ltr order TP,BE,SL', seg().getAttribute('dir') === 'ltr' && [...seg().children].map((c) => c.textContent.slice(0, 2)).join(',') === 'TP,BE,SL');
+  ck('fa: boxes ltr order TP,BE,SL', seg().getAttribute('dir') === 'ltr' && [...seg().children].map((c) => c.querySelector('input').placeholder).join(',') === 'TP,BE,SL');
   ck('fa: cards removed', !dlg().textContent.includes('قیمت برابر ورود'));
-  const box = (id) => [...seg().children].find((c) => c.textContent.startsWith(id));
+  const box = (id) => [...seg().children].find((c) => c.querySelector('input').placeholder === id);
   ck('fa: badge hidden before prices', ![...dlg().querySelectorAll('span')].some((sp) => sp.textContent === 'لانگ' || sp.textContent === 'شورت'));
   click(w, dlg().querySelector('button[aria-label="ارز / دارایی"]'));
   await sleep(400);
@@ -87,7 +87,7 @@ function ck(name, cond) {
   setInput(w, d5.querySelector('input[placeholder="108,400"]'), '2000'); await sleep(150);
   setInput(w, d5.querySelector('input[placeholder="109,860"]'), '2100'); await sleep(150);
   setInput(w, d5.querySelector('input[placeholder="107,900"]'), '1990'); await sleep(300);
-  const tpBox5 = [...d5.querySelector('[role="group"]').children].find((c) => c.textContent.startsWith('TP'));
+  const tpBox5 = [...d5.querySelector('[role="group"]').children].find((c) => c.querySelector('input').placeholder === 'TP');
   setInput(w, tpBox5.querySelector('input'), '5000'); await sleep(500);
   ck('fa: no double percent', !doc.body.textContent.includes('٪٪'));
   ck('fa: colloquial warn', doc.body.textContent.includes('حجم رو بیار پایین'));
@@ -105,7 +105,7 @@ function ck(name, cond) {
 
   // plans fa
   nav(w, 'پلن‌های من'); await sleep(700);
-  ck('fa: plans page', doc.body.textContent.includes('پلن‌های من') && doc.body.textContent.includes('هنوز پلنی نداری'));
+  ck('fa: plans page + sample', doc.body.textContent.includes('پلن‌های من') && doc.body.textContent.includes('استراتژی کندل روز قبل') && doc.body.textContent.includes('سقف و کف کندل روز قبل'));
   click(w, byText(doc, 'button', 'پلن جدید')); await sleep(600);
   const pf = doc.querySelector('[role="dialog"]');
   setInput(w, pf.querySelector('input'), 'ستاپ من'); await sleep(120);
@@ -127,6 +127,15 @@ function ck(name, cond) {
 
   nav(w, 'یادداشت‌ها'); await sleep(700);
   ck('fa: notes card', doc.body.textContent.includes('درس‌های روزانه') && doc.body.textContent.includes('درس امروز'));
+  const fSub = doc.querySelector('input[aria-label="موضوع"]');
+  const fCmp = doc.querySelector('textarea[aria-label^="یه یادداشت"]');
+  ck('fa: composer present', !!fSub && !!fCmp);
+  setInput(w, fSub, 'قانون من'); await sleep(150);
+  setInput(w, fCmp, 'معامله انتقامی ممنوع'); await sleep(150);
+  click(w, doc.querySelector('button[aria-label="افزودن یادداشت"]')); await sleep(600);
+  ck('fa: composer saved', (w.localStorage.getItem('pulse.notes') || '').includes('معامله انتقامی ممنوع'));
+  const fHtml = doc.body.innerHTML;
+  ck('fa: notes two-column', fHtml.includes('lg:col-span-5') && fHtml.includes('lg:col-span-7'));
 
   const jsErrors = errors.length;
   process.stdout.write(`${pass} passed, ${fail} failed, ${jsErrors} js errors\n`);
