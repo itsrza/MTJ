@@ -39,25 +39,28 @@ const body = (doc) => doc.body.textContent;
   ck('weekend: bell has no nag item', isWeekend ? !(wrap && wrap.textContent.includes('Daily note missing')) : true);
   if (wrap) { pd(w, bell); await sleep(300); }
 
-  // ---------------- calculator ----------------
+  // ---------------- calculator (batch-10 redesign) ----------------
   nav(w, 'Calculator'); await sleep(600);
-  ck('calc: margin-first default', !!ph(w, '100'));
-  const adv = [...doc.querySelectorAll('button')].find((x) => x.textContent.includes('Advanced settings'));
-  if (adv && adv.getAttribute('aria-expanded') !== 'true') click(w, adv);
-  await sleep(500);
+  const navBtn = doc.querySelector('button[aria-current="page"]');
+  const navSvg = navBtn && navBtn.querySelector('svg');
+  ck('nav: active calc icon visible', !!navSvg && (navSvg.getAttribute('class') || '').includes('z-10'));
+  ck('calc: margin main + optional', !!ph(w, '100') && body(doc).includes('Optional'));
+  ck('calc: advanced section removed', !body(doc).includes('Advanced settings') && !ph(w, '10'));
   setInput(w, ph(w, '1000'), '1000'); await sleep(120);
-  setInput(w, ph(w, '100'), '19.96'); await sleep(120);
   setInput(w, ph(w, '108,400'), '2000'); await sleep(120);
   setInput(w, ph(w, '107,900'), '1990'); await sleep(120);
   setInput(w, ph(w, '110,200'), '2100'); await sleep(120);
-  setInput(w, ph(w, '10'), '20'); await sleep(600);
-  ck('calc: hero margin $19.96', body(doc).includes('$19.96'));
-  ck('calc: PV $399.20', body(doc).includes('$399.2'));
-  ck('calc: qty 0.1996', body(doc).includes('0.1996'));
-  ck('calc: liq $1,908', body(doc).includes('1,908'));
-  ck('calc: net TP $19.56', body(doc).includes('19.56'));
+  ck('calc: risk sizing when margin empty', body(doc).includes('Sized by risk %'));
+  setInput(w, ph(w, '100'), '100'); await sleep(1300);
+  ck('calc: margin sizing chip', body(doc).includes('Sized by margin'));
+  ck('calc: PV $1,000', body(doc).includes('1,000'));
+  ck('calc: qty 0.5000', body(doc).includes('0.5000'));
+  ck('calc: liq $1,808', body(doc).includes('1,808'));
+  ck('calc: net TP $49.00', body(doc).includes('49.00'));
+  ck('calc: net SL $6.00', body(doc).includes('6.00'));
+  ck('calc: rr 10R badge', body(doc).includes('10.0R'));
   setInput(w, ph(w, '100'), '1000'); await sleep(500);
-  ck('calc: dd cap hero $300 + warn', body(doc).includes('$300') && /drawdown/i.test(body(doc)));
+  ck('calc: dd cap $300 + warn', body(doc).includes('$300') && /drawdown/i.test(body(doc)));
 
   // ---------------- add trade: outcome $ boxes ----------------
   click(w, byText(doc, 'button', 'Add trade') || doc.querySelector('[aria-label="Add trade"]'));
@@ -69,6 +72,7 @@ const body = (doc) => doc.body.textContent;
   const seg = () => dlg().querySelector('[role="group"]');
   ck('add: boxes dir ltr + order TP,BE,SL', seg().getAttribute('dir') === 'ltr' && [...seg().children].map((c) => c.querySelector('input').placeholder).join(',') === 'TP,BE,SL');
   ck('add: label TP/BE/SL above', dlg().textContent.includes('TP/BE/SL'));
+  ck('add: pills borderless + focus-safe', [...seg().children].every((c) => !/border/.test(c.className)) && !!seg().querySelector('input.pill-input'));
   const box = (id) => [...seg().children].find((c) => c.querySelector('input').placeholder === id);
   const boxIn = (id) => box(id).querySelector('input');
   ck('add: boxes idle', box('TP').getAttribute('aria-pressed') === 'false');
@@ -150,6 +154,9 @@ const body = (doc) => doc.body.textContent;
 
   // ---------------- My Plans ----------------
   nav(w, 'My Plans'); await sleep(700);
+  const navBtn2 = doc.querySelector('button[aria-current="page"]');
+  const navSvg2 = navBtn2 && navBtn2.querySelector('svg');
+  ck('nav: active plans icon visible', !!navSvg2 && (navSvg2.getAttribute('class') || '').includes('z-10'));
   ck('plans: page + sample seeded', body(doc).includes('My Plans') && body(doc).includes('Previous Day Candle') && body(doc).includes("Mark the previous day's high and low"));
   click(w, byText(doc, 'button', 'New plan')); await sleep(600);
   const pd2 = doc.querySelector('[role="dialog"]');
@@ -184,7 +191,9 @@ const body = (doc) => doc.body.textContent;
 
   // ---------------- analytics has RR ----------------
   nav(w, 'Analytics'); await sleep(800);
-  ck('analytics: strip + minimal RR below equity', body(doc).includes('R:R Performance') && body(doc).includes('Net P&L') && body(doc).indexOf('Equity curve') < body(doc).indexOf('R:R Performance'));
+  ck('analytics: strip + RR below equity', body(doc).includes('R:R Performance') && body(doc).includes('Net P&L') && body(doc).indexOf('Equity curve') < body(doc).indexOf('R:R Performance'));
+  const strip = doc.querySelector('section[aria-label="Account overview"]');
+  ck('analytics: strip full-width (no overlap)', !!strip && strip.parentElement.className.includes('col-span-12'));
 
   // ---------------- notes page: two columns + composer ----------------
   nav(w, 'Notes'); await sleep(800);

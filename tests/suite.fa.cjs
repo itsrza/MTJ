@@ -36,20 +36,22 @@ function ck(name, cond) {
   ck('fa: reminder gradient removed', !doc.querySelector('[class*="from-accent/10"]'));
   ck('fa: rr minimal + below equity', doc.body.textContent.includes('عملکرد R:R') && doc.body.textContent.includes('تجمع R') && !doc.body.textContent.includes('توزیع R') && doc.body.textContent.indexOf('منحنی اکوییتی') >= 0 && doc.body.textContent.indexOf('منحنی اکوییتی') < doc.body.textContent.indexOf('عملکرد R:R'));
 
-  // calculator fa
+  // calculator fa (batch-10 redesign)
   nav(w, 'ماشین‌حساب'); await sleep(500);
-  ck('fa: margin mode default', !!ph(w, '100'));
-  const adv = [...doc.querySelectorAll('button')].find((x) => x.textContent.includes('تنظیمات پیشرفته'));
-  if (adv && adv.getAttribute('aria-expanded') !== 'true') click(w, adv);
-  await sleep(500);
+  const fNavBtn = doc.querySelector('button[aria-current="page"]');
+  const fNavSvg = fNavBtn && fNavBtn.querySelector('svg');
+  ck('fa: nav active calc icon visible', !!fNavSvg && (fNavSvg.getAttribute('class') || '').includes('z-10'));
+  ck('fa: margin main + optional', !!ph(w, '100') && doc.body.textContent.includes('اختیاری'));
+  ck('fa: advanced removed', !doc.body.textContent.includes('تنظیمات پیشرفته') && !ph(w, '10'));
   setInput(w, ph(w, '1000'), '1000'); await sleep(120);
-  setInput(w, ph(w, '100'), '19.96'); await sleep(120);
   setInput(w, ph(w, '108,400'), '2000'); await sleep(120);
   setInput(w, ph(w, '107,900'), '1990'); await sleep(120);
   setInput(w, ph(w, '110,200'), '2100'); await sleep(120);
-  setInput(w, ph(w, '10'), '20'); await sleep(500);
-  ck('fa: hero ۱۹', doc.body.textContent.includes('۱۹'));
-  ck('fa: pv ۳۹۹', doc.body.textContent.includes('۳۹۹'));
+  ck('fa: byRisk chip when margin empty', doc.body.textContent.includes('محاسبه با ریسک٪'));
+  setInput(w, ph(w, '100'), '100'); await sleep(1300);
+  ck('fa: byMargin chip', doc.body.textContent.includes('محاسبه با مارجین'));
+  ck('fa: net profit ۴۹', doc.body.textContent.includes('۴۹'));
+  ck('fa: rr ۱۰', doc.body.textContent.includes('۱۰'));
   setInput(w, ph(w, '100'), '1000'); await sleep(500);
   ck('fa: dd cap warning', doc.body.textContent.includes('سقف drawdown'));
 
@@ -60,6 +62,7 @@ function ck(name, cond) {
   ck('fa: dialog open', !!dlg());
   const seg = () => dlg().querySelector('[role="group"]');
   ck('fa: boxes ltr order TP,BE,SL', seg().getAttribute('dir') === 'ltr' && [...seg().children].map((c) => c.querySelector('input').placeholder).join(',') === 'TP,BE,SL');
+  ck('fa: pills borderless', [...seg().children].every((c) => !/border/.test(c.className)) && !!seg().querySelector('input.pill-input'));
   ck('fa: cards removed', !dlg().textContent.includes('قیمت برابر ورود'));
   const box = (id) => [...seg().children].find((c) => c.querySelector('input').placeholder === id);
   ck('fa: badge hidden before prices', ![...dlg().querySelectorAll('span')].some((sp) => sp.textContent === 'لانگ' || sp.textContent === 'شورت'));
