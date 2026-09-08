@@ -207,9 +207,13 @@ const body = (doc) => doc.body.textContent;
   const nHtml = doc.body.innerHTML;
   ck('notes: two-column desktop layout', nHtml.includes('lg:col-span-5') && nHtml.includes('lg:col-span-7'));
 
-  // ---------------- bell nag flow (shifted weekday) ----------------
-  const fKey = dayKey(new Date(Date.now() - 3 * 86400000));
-  const B = await boot({ lang: 'en', shiftDays: -2, trades: [mkTrade({ id: 't-xbell1', entryAt: fKey + 'T08:00:00.000Z', exitAt: fKey + 'T10:00:00.000Z' })] });
+  // ---------------- bell nag flow (date-robust: fake Wednesday, trade Tuesday) ----------------
+  const nowR = new Date();
+  let shift = ((3 - nowR.getUTCDay()) + 7) % 7;
+  if (shift > 3) shift -= 7;
+  const fKey = dayKey(new Date(Date.now() + shift * 86400000 - 86400000));
+  const fLabel = new Date(fKey + 'T00:00:00Z').toLocaleDateString('en-US', { month: 'short', day: 'numeric', timeZone: 'UTC' });
+  const B = await boot({ lang: 'en', shiftDays: shift, trades: [mkTrade({ id: 't-xbell1', entryAt: fKey + 'T08:00:00.000Z', exitAt: fKey + 'T10:00:00.000Z' })] });
   const w2 = B.w, doc2 = w2.document;
   ck('bell boot clean', B.errors.length === 0);
   pd(w2, doc2.querySelector('[aria-label="Notifications"]')); await sleep(500);
@@ -225,7 +229,7 @@ const body = (doc) => doc.body.textContent;
     click(w2, dd2.querySelector('button[aria-label="Cancel"]')); await sleep(700);
     pd(w2, doc2.querySelector('[aria-label="Notifications"]')); await sleep(500);
     const wrap3 = doc2.querySelector('[data-radix-popper-content-wrapper]');
-    ck('bell: saved day cleared', !(wrap3 && wrap3.textContent.includes('Sep 3')));
+    ck('bell: saved day cleared', !(wrap3 && wrap3.textContent.includes(fLabel)));
   } else {
     ck('bell: opens day dialog', false);
     ck('bell: saved day cleared', false);
